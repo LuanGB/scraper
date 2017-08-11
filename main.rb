@@ -7,20 +7,39 @@ Dir["./lib/*.rb"].each {|file| if file != __FILE__ then require file end  }
 
 session = GoogleDrive::Session.from_config("./client_secret.json")
 
-ws = session.spreadsheet_by_key("spreadsheet_key_here").worksheets[1]
+ws_dex = session.spreadsheet_by_key("spreadsheet_key_here").worksheets[0]
+ws_hibu = session.spreadsheet_by_key("spreadsheet_key_here").worksheets[1]
 
-info = Scraper.scrap
+info = Scraper.scrap_dex
 
-ws[1, 1] = 'URL'
-ws[1, 2] = 'DESCRIPTION'
-ws[1, 3] = 'EMAILS'
-ws[1, 4] = 'PHONES'
+ws_dex[1, 1] = 'URL'
+ws_dex[1, 2] = 'DESCRIPTION'
+ws_dex[1, 3] = 'KEYWORDS'
+ws_dex[1, 4] = 'EMAILS'
+ws_dex[1, 5] = 'PHONES'
 
-info.each_with_index do |info, i|
-	ws[i+2, 1] = info['site_url']
-	ws[i+2, 2] = info['description']
-	ws[i+2, 3] = info['emails']
-	ws[i+2, 4] = info['phones']
+info.each_with_index do |inf, i|
+	ws_dex[i+2, 1] = inf['site_url']
+	ws_dex[i+2, 2] = inf['description']
+	ws_dex[i+2, 3] = inf['keywords']
+	ws_dex[i+2, 4] = inf['emails']
+	ws_dex[i+2, 5] = inf['phones']
 end
 
-ws.save
+ws_dex.save
+
+info = Scraper.scrap_hibu
+
+ws_hibu[1, 1] = 'URL'
+ws_hibu[1, 2] = 'DESCRIPTION'
+ws_hibu[1, 3] = 'EMAILS'
+ws_hibu[1, 4] = 'PHONES'
+
+info.each_with_index do |inf, i|
+	ws_hibu[i+2, 1] = inf['site_url']
+	ws_hibu[i+2, 2] = inf['description']
+	ws_hibu[i+2, 3] = inf['emails']
+	ws_hibu[i+2, 4] = inf['phones']
+end
+
+ws_hibu.save

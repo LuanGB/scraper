@@ -10,6 +10,9 @@ session = GoogleDrive::Session.from_config("./client_secret.json")
 ws_dex = session.spreadsheet_by_key("spreadsheet_key_here").worksheets[0]
 ws_hibu = session.spreadsheet_by_key("spreadsheet_key_here").worksheets[1]
 
+#By default, this method will search in the 10 first google results, only.
+#For custom amount of results: Scraper.scrap_<dex|hibu> <number of google results>
+
 info = Scraper.scrap_dex
 
 ws_dex[1, 1] = 'URL'

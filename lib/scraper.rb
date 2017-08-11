@@ -10,9 +10,12 @@ class Scraper
 		end
 
 		urls.compact!
+
+    puts "--> Scraping top #{urls.count} Hibu results"
 		
-		(urls.map do |url|
+    (urls.each_with_index.map do |url, i|
 			begin
+        puts " #{i+1} - #{url}"
 				info = {}
 				page_html = get_page_html url
 				if (page_html.at('div.footer a:contains("hibu")'))
@@ -45,8 +48,11 @@ class Scraper
 
 		urls.compact!
 
-		(urls.map do |url|
+    puts "--> Scraping top #{urls.count} Dex results"
+
+    (urls.each_with_index.map do |url, i|
 			begin
+        puts " #{i+1} - #{url}"
 				info = {}
 				
 				url = URI url

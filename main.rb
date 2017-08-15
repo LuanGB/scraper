@@ -20,7 +20,7 @@ auth_uri = auth_client.authorization_uri.to_s
 puts auth_uri
 
 puts 'Paste the code from the auth response page:'
-auth_client.code = gets
+auth_client.code = STDIN.gets()
 auth_client.fetch_access_token!
 
 
@@ -31,4 +31,6 @@ scraper = Scraper.new auth_client, 'spreadsheet_id'
 # For custom amount of results: 
 # scrap_<dex|hibu> <number of google results>, <start at results index>
 
-scraper.scrap_dex
+scraper.send('scrap_' + ARGV[0], ARGV[1], ARGV[2])
+
+#scraper.scrap_dex

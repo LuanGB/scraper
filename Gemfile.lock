@@ -69,6 +69,7 @@ PLATFORMS
 
 DEPENDENCIES
   byebug (~> 9.0, >= 9.0.5)
+  google-api-client (~> 0.12.0)
   google_drive (~> 2.1, >= 2.1.5)
   nokogiri (~> 1.6, >= 1.6.8)
   open_uri_redirections (~> 0.2.1)

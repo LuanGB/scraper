@@ -9,7 +9,7 @@ class Scraper
 	end
 
 	def scrap_hibu num = 10, start = 0
-		
+
 		urls = get_results "'Powered by hibu'", num, start
 
 		puts "--> Scraping top #{urls.count} Hibu results"
@@ -18,6 +18,7 @@ class Scraper
 			info = {}
 
 			begin
+				retries ||= 0
 				puts " #{i+1} - #{url}"
 
 				page_html = get_page_html url
@@ -37,17 +38,22 @@ class Scraper
 					plain_page = get_plain_page url
 
 					info['site_url'] = url
-					info['description'] = page_html.at("meta[name='description']")['content']
+					meta = page_html.at("meta[name='description']")
+					info['description'] = meta['content'] if meta
 					info['emails'] = (get_occurrences plain_page, /[a-zA-Z0-9_.+\-]+@[a-zA-Z0-9\-]+\.[a-zA-Z0-9\-.]+/).join(' - ')
 					info['phones'] = (get_occurrences plain_page, /\(?([0-9]{3})\)?([ .-]?)([0-9]{3})\2([0-9]{4})/, 4).join(' - ')
 					
 					puts "  Saving on spreadsheet..."
 					
 					append_on_spreadsheet 'Hibu!A1:D1', info['site_url'], info['description'], info['emails'], info['phones']
+					
 				end
 			rescue Exception => e
 				puts "  An error occurred: #{e.message}"
 				#puts e.backtrace
+				puts "   Trying again in two seconds..."
+				sleep 2
+				retry if (retries +=1) < 1
 				next
 			end
 		end
@@ -57,32 +63,41 @@ class Scraper
 		
 		urls = get_results "'Powered by Dex Media'", num, start
 
-		puts "--> Scraping top #{urls.count} Dex results"
+		puts "--> Scraping top #{urls.count} Dex Media results"
 
 		urls.each_with_index.map do |url, i|
 			info = {}
+			
 			begin
+				retries ||= 0
 				puts " #{i+1} - #{url}"
 				
 				url = URI url
-				page_html = get_page_html(url.scheme + '://' + url.host)
+				page_html = get_page_html url
 
 				if page_html.at_css('div#footer script')['src'].index('supermedia')
 
-					contact_url = url.scheme + '://' + url.host + url.request_uri
-					plain_page = Sanitize.fragment(get_page_html contact_url)
+					plain_page = Sanitize.fragment(get_page_html url)
 
-					info['site_url'] = url.scheme + '://' + url.host
-					info['description'] = page_html.at("meta[name='DESCRIPTION']")['content']
-					info['keywords'] = page_html.at("meta[name='KEYWORDS']")['content']
+					info['site_url'] = url
+					meta = page_html.at("meta[name='DESCRIPTION']")
+					info['description'] = meta['content'] if meta
+					meta = page_html.at("meta[name='KEYWORDS']")
+					info['keywords'] = meta['content'] if meta
 					info['emails'] = (get_occurrences plain_page, /[a-zA-Z0-9_.+\-]+@[a-zA-Z0-9\-]+\.[a-zA-Z0-9\-.]+/).uniq.join(' - ')
 					info['phones'] = (get_occurrences plain_page, /\(?([0-9]{3})\)?([ .-]?)([0-9]{3})\2([0-9]{4})/, 4).uniq.join(' - ')
 				end
 			rescue Exception => e
-				puts "  An error occurred: " + e.message
+				puts "  An error occurred: #{e.message}"
+				#puts e.backtrace
+				puts "   Trying again in two seconds..."
+				sleep 2
+				retry if (retries +=1) < 1
 				next
 			end
 			
+			puts "  Saving on spreadsheet..."
+
 			append_on_spreadsheet 'Dex!A1:E1', info['site_url'], info['description'], info['keywords'], info['emails'], info['phones']
 			
 		end

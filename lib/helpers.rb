@@ -9,7 +9,7 @@ end
 
 def get_plain_page url
 	tmp = []
-	Nokogiri::HTML(open url).traverse { |node|
+	Nokogiri::HTML(open_path (URI url)).traverse { |node|
 		if node.text? && node.text !~ /^\s*$/
 			tmp << node.text
 		end
@@ -21,7 +21,7 @@ end
 def get_page_html url, params = {}
 	uri = URI(url)
 	uri.query = URI.encode_www_form(params) unless params.empty?
-	Nokogiri::HTML(open uri)
+	Nokogiri::HTML(open_path uri)
 end
 
 def fetch(url)
@@ -101,4 +101,15 @@ def get_results term, num, start
 
 	urls.compact
 	
+end
+
+def open_path path
+	open(path, 
+		ssl_verify_mode: OpenSSL::SSL::VERIFY_NONE,
+		"User-Agent" => "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
+    "Referer" => path.scheme + '://' + path.host,
+    "Host" => path.host,
+    "Connection" => 'keep-alive', 
+    :allow_redirections => :all
+    )
 end

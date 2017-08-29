@@ -1,21 +1,20 @@
 #http://topshopmankato.com/ - http://kernsfireplaceandspa.com - http://ultimateautorepair.net
 class Scraper
-	def initialize google_auth, spreadsheet_id
-		@service = Google::Apis::SheetsV4::SheetsService.new
-
-		@service.authorization = google_auth
-
-		@ss_id = spreadsheet_id
+	def initialize spreadsheet_id
+		@sheets_service = GoogleSheets.new authorize, spreadsheet_id
 	end
 
-	def scrap_hibu num = 10, start = 0
+	def scrap_hibu
 
-		urls = get_results "'Powered by hibu'", num, start
+		urls = get_pending_urls 'HibuUrls'
 
-		puts "--> Scraping top #{urls.count} Hibu results"
+		puts "--> Scraping #{urls.count} results"
 		
 		urls.each_with_index.map do |url, i|
 			info = {}
+			
+			spreadsheet_index = url['index']
+			url = url['url']
 
 			begin
 				retries ||= 0
@@ -45,25 +44,31 @@ class Scraper
 					
 					puts "  Saving on spreadsheet..."
 					
-					append_on_spreadsheet 'Hibu!A1:D1', info['site_url'], info['description'], info['emails'], info['phones']
-					
+					@sheets_service.append_single_row_on_spreadsheet 'Hibu!A1:D1', info['site_url'], info['description'], info['emails'], info['phones']
+					@sheets_service.update_spreadsheet_value "HibuUrls!B#{spreadsheet_index}", 'Ok'
+				else
+					@sheets_service.update_spreadsheet_value "HibuUrls!B#{spreadsheet_index}", 'Not a Valid site'
 				end
 			rescue Exception => e
 				puts "  An error occurred: #{e.message}"
 				#puts e.backtrace
 				puts "   Trying again in two seconds..."
 				sleep 2
-				retry if (retries +=1) < 1
+				retry if (retries +=1) < 2
+				@sheets_service.update_spreadsheet_value "HibuUrls!B#{spreadsheet_index}", 'failed: ' + e.message
 				next
 			end
 		end
 	end
 
-	def scrap_dex num = 10, start = 0
+	def scrap_dex
 		
-		urls = get_results "'Powered by Dex Media'", num, start
+		urls = get_pending_urls 'DexUrls'
 
 		puts "--> Scraping top #{urls.count} Dex Media results"
+
+		spreadsheet_index = url['index']
+		url = url['url']
 
 		urls.each_with_index.map do |url, i|
 			info = {}
@@ -72,7 +77,6 @@ class Scraper
 				retries ||= 0
 				puts " #{i+1} - #{url}"
 				
-				url = URI url
 				page_html = get_page_html url
 
 				if page_html.at_css('div#footer script')['src'].index('supermedia')
@@ -86,6 +90,13 @@ class Scraper
 					info['keywords'] = meta['content'] if meta
 					info['emails'] = (get_occurrences plain_page, /[a-zA-Z0-9_.+\-]+@[a-zA-Z0-9\-]+\.[a-zA-Z0-9\-.]+/).uniq.join(' - ')
 					info['phones'] = (get_occurrences plain_page, /\(?([0-9]{3})\)?([ .-]?)([0-9]{3})\2([0-9]{4})/, 4).uniq.join(' - ')
+				
+					puts "  Saving on spreadsheet..."
+
+					@sheets_service.append_single_row_on_spreadsheet 'Dex!A1:E1', info['site_url'], info['description'], info['keywords'], info['emails'], info['phones']
+					@sheets_service.update_spreadsheet_value "DexUrls!B#{spreadsheet_index}", 'Ok'
+				else
+					@sheets_service.update_spreadsheet_value "DexUrls!B#{spreadsheet_index}", 'Not a Valid site'
 				end
 			rescue Exception => e
 				puts "  An error occurred: #{e.message}"
@@ -93,36 +104,41 @@ class Scraper
 				puts "   Trying again in two seconds..."
 				sleep 2
 				retry if (retries +=1) < 1
+				@sheets_service.update_spreadsheet_value "DexUrls!B#{spreadsheet_index}", 'failed: ' + e.message
 				next
 			end
-			
-			puts "  Saving on spreadsheet..."
-
-			append_on_spreadsheet 'Dex!A1:E1', info['site_url'], info['description'], info['keywords'], info['emails'], info['phones']
-			
 		end
 	end
 
-	private
-
-	def append_on_spreadsheet range, *values
-		v = {
-			major_dimension: "ROWS",
-			values: [
-				values
-			]
-		}
-
-		response = @service.append_spreadsheet_value(
-			@ss_id, 
-			range, 
-			v, 
-			value_input_option: 'RAW', 
-			insert_data_option: 'INSERT_ROWS'
-			)
+	def scrap_google term, spreadsheet_range
 		
-		puts "   Spreadsheet sucessfuly updated at #{response.updates.updated_range}"
+		engine = GoogleScraper::Engine.new
+		results = engine.query_all(term)
 		
+		@sheets_service.append_on_spreadsheet spreadsheet_range, (results.map { |res| [res.url.gsub('"', ''), 'pending']}).uniq
+		@sheets_service.update_spreadsheet_value "#{spreadsheet_range.split('!')[0]}!C1", results.count
+	end
+
+	private 
+
+	def get_pending_urls spreadsheet_name
+		
+		urls = []
+
+		urls_count = @sheets_service.get_value_from_spreadsheet "#{spreadsheet_name}!C1"
+		values = @sheets_service.get_value_from_spreadsheet "#{spreadsheet_name}!A2:B#{urls_count[0][0].to_i+1}"
+		values.each_with_index do |value, i|
+			info = {}
+			url = value[0].gsub('"', '') if value[1] != 'Ok' and value[1] != 'Not a Valid site'
+			if url
+				info['url'] = URI(url).scheme + '://' + URI(url).host
+				info['index'] = i+2
+				urls << info
+			end
+		end
+		
+		urls.uniq { |u| u['url'] }
+
 	end
 
 end

@@ -4,29 +4,39 @@ def get_occurrences string, regex, g = 1
 	(s.count / g).times do |i|
 		out << s[i*g..((i+1)*g)-1].join
 	end
-	out.uniq
+	return out.uniq
 end
 
 def get_plain_page url
-	tmp = []
-	Nokogiri::HTML(open_path (URI url)).traverse { |node|
-		if node.text? && node.text !~ /^\s*$/
-			tmp << node.text
-		end
-	}
-
-	page = tmp.join("\n")
+	begin
+		tmp = []
+		page = open_path (URI url)
+		Nokogiri::HTML(page).traverse { |node|
+			if node.text? && node.text !~ /^\s*$/
+				tmp << node.text
+			end
+		}
+	ensure
+		if page then page.close end
+	end
+	
+	return tmp.join("\n")
 end
 
 def get_page_html url, params = {}
-	uri = URI(url)
-	uri.query = URI.encode_www_form(params) unless params.empty?
-	Nokogiri::HTML(open_path uri)
+	begin 
+		uri = URI(url)
+		uri.query = URI.encode_www_form(params) unless params.empty?
+		page = open_path uri
+		return Nokogiri::HTML(page)
+	ensure
+		if page then page.close end
+	end
 end
 
 def fetch(url)
 
-	response = Net::HTTP.get_response(URI(url))
+	response = Net::HTTP.get_response(url)
 
 	case response
 	when Net::HTTPSuccess then
@@ -43,8 +53,7 @@ end
 OOB_URI = 'urn:ietf:wg:oauth:2.0:oob'
 APPLICATION_NAME = 'Scraper'
 CLIENT_SECRETS_PATH = 'client_secrets.json'
-CREDENTIALS_PATH = File.join(Dir.home, '.credentials',
-	"gmail-ruby-quickstart.yaml")
+CREDENTIALS_PATH = File.join(Dir.home, '.credentials', "user_credentials.yaml")
 SCOPE = Google::Apis::SheetsV4::AUTH_SPREADSHEETS
 
 ##
@@ -113,3 +122,4 @@ def open_path path
     :allow_redirections => :all
     )
 end
+

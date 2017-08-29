@@ -13,7 +13,7 @@ Bundler.require(:default)
 Dir["./lib/*.rb"].each {|file| if file != __FILE__ then require file end  }
 
 #Scraper.new <spreadsheet id>
-scraper = Scraper.new '1t5D37byXFPR6fYfF6h-OE8mjfWSLlDmMHnyfahgRPUQ'
+scraper = Scraper.new 'spreadsheet_id'
 
 #scraper.scrap_google '"Powered by Dex Media"', 'DexUrls!A1:B1'
 #scraper.scrap_hibu

@@ -67,12 +67,12 @@ class Scraper
 
 		puts "--> Scraping top #{urls.count} Dex Media results"
 
-		spreadsheet_index = url['index']
-		url = url['url']
-
 		urls.each_with_index.map do |url, i|
 			info = {}
 			
+			spreadsheet_index = url['index']
+			url = url['url']
+
 			begin
 				retries ||= 0
 				puts " #{i+1} - #{url}"
